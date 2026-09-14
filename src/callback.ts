@@ -23,7 +23,10 @@ export async function postCallback(
       Accept: 'application/json',
       Authorization: `Bearer ${callbackToken}`,
     },
-    body: JSON.stringify({ slot: input.slot, ...result }),
+    // Echo the sourceKey back so the callback can record which R2 object this
+    // transcode was actually built from (ADR 0009 source_key staleness check) —
+    // `result` alone carries no trace of the source.
+    body: JSON.stringify({ slot: input.slot, sourceKey: input.sourceKey, ...result }),
   });
 
   if (!response.ok) {
