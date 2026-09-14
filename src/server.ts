@@ -4,6 +4,7 @@ import { R2Client } from './r2';
 import { buildPipelineDeps } from './pipeline';
 import { runTranscodeJob } from './job';
 import { postCallback } from './callback';
+import { JobQueue } from './queue';
 import { TranscodeJobInput } from './types';
 
 const config = loadConfig();
@@ -12,7 +13,13 @@ const deps = buildPipelineDeps(r2);
 
 const app = Fastify({ logger: true });
 
-app.get('/health', async () => ({ ok: true }));
+// ffmpeg is CPU/disk heavy and this service has no other concurrency limit —
+// a batch trigger (ticket 04 of .scratch/hls-multi-bitrate-pipeline) firing
+// many /jobs requests back-to-back must not stack up several ffmpeg
+// processes on one container at once. See queue.ts.
+const jobQueue = new JobQueue<TranscodeJobInput>(runJobInBackground);
+
+app.get('/health', async () => ({ ok: true, queueLength: jobQueue.length }));
 
 app.post<{ Body: TranscodeJobInput }>('/jobs', async (request, reply) => {
   const { episodeId, sourceKey } = request.body ?? ({} as TranscodeJobInput);
@@ -21,11 +28,12 @@ app.post<{ Body: TranscodeJobInput }>('/jobs', async (request, reply) => {
     return reply.code(400).send({ error: 'episodeId and sourceKey are required' });
   }
 
-  // Fire-and-forget: the caller gets 202 immediately, the actual result is
-  // reported later via the callback (this can take minutes for a real video).
-  reply.code(202).send({ accepted: true });
+  // Accepted immediately; the actual encode is processed one-at-a-time by
+  // jobQueue and its result is reported later via the callback (this can
+  // take minutes for a real video).
+  jobQueue.enqueue({ episodeId, sourceKey });
 
-  runJobInBackground({ episodeId, sourceKey });
+  reply.code(202).send({ accepted: true, queuePosition: jobQueue.length });
 });
 
 async function runJobInBackground(input: TranscodeJobInput): Promise<void> {

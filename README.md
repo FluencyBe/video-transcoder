@@ -9,11 +9,13 @@ reports the result back to `portalfluencybe` via a callback POST.
 
 ## API
 
-`POST /jobs` `{ episodeId, sourceKey }` → `202 Accepted` immediately; the
-actual encode runs in the background (can take minutes) and reports its
-result via `POST {TRANSCODE_CALLBACK_URL}/episodes/{episodeId}/transcode-callback`.
+`POST /jobs` `{ episodeId, sourceKey }` → `202 Accepted` immediately with the
+job's position in the queue; the actual encode is processed **one at a time**
+(see `src/queue.ts` — ffmpeg is CPU/disk heavy and nothing else here limits
+concurrency) and can take minutes. Its result is reported via
+`POST {TRANSCODE_CALLBACK_URL}/episodes/{episodeId}/transcode-callback`.
 
-`GET /health` → `{ ok: true }`.
+`GET /health` → `{ ok: true, queueLength: <pending + in-flight jobs> }`.
 
 ## Local development
 
@@ -41,6 +43,9 @@ This service has no existing infra-as-code precedent in this monorepo
    (see `portalfluencybe/.env.example`).
 4. Note the service's internal/external URL — portalfluencybe's
    `VIDEO_TRANSCODER_URL` env var needs to point at it.
-5. Ensure the container has enough CPU/memory for 3 parallel-ish ffmpeg
-   encodes without starving other EasyPanel services — size this from a
-   real encode's resource usage, not guessed.
+5. Jobs are already serialized to one ffmpeg encode at a time (`src/queue.ts`),
+   so sizing is per-single-encode, not N-at-once — but still measure it for
+   real: run one job against this container, watch EasyPanel's CPU/RAM/disk
+   metrics for that service during the encode, and size from that instead of
+   guessing. Pay attention to disk too, not just RAM/CPU — the source
+   download can be multiple GB (see docs/panda-video-migration-status.md).
