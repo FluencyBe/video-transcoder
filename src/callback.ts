@@ -18,12 +18,20 @@ export async function postCallback(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      // Asks Laravel for a JSON error body instead of an HTML Whoops page on
+      // failure — much more useful in this service's own (JSON) logs.
+      Accept: 'application/json',
       Authorization: `Bearer ${callbackToken}`,
     },
     body: JSON.stringify({ slot: input.slot, ...result }),
   });
 
   if (!response.ok) {
-    throw new Error(`Callback POST failed with status ${response.status}`);
+    // Read the body so the actual Laravel error (with APP_DEBUG=true, a full
+    // exception message) lands in this service's own logs, instead of being
+    // silently discarded — otherwise diagnosing a callback failure means
+    // separately digging through portalfluencybe's logs.
+    const body = await response.text().catch(() => '<failed to read response body>');
+    throw new Error(`Callback POST failed with status ${response.status}: ${body.slice(0, 2000)}`);
   }
 }
