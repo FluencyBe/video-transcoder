@@ -18,7 +18,7 @@ export interface TranscodeJobDeps {
  * fewer qualities" mode). The source download is always cleaned up.
  */
 export async function runTranscodeJob(input: TranscodeJobInput, deps: TranscodeJobDeps): Promise<TranscodeJobResult> {
-  const keyPrefix = `episodes/${input.episodeId}/hls`;
+  const keyPrefix = `episodes/${input.episodeId}/hls/${input.slot}`;
 
   let sourcePath: string;
   try {

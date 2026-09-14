@@ -5,11 +5,16 @@ HLS multi-bitrate transcoding service for Fluency-be episode video — see
 
 Given one episode's already-migrated R2 source video, produces 3 HLS quality
 renditions (1080p/720p/480p) plus a master manifest, uploads them to R2, and
-reports the result back to `portalfluencybe` via a callback POST.
+reports the result back to `portalfluencybe` via a callback POST. An episode
+can have up to 4 source videos (the main video plus 3 secondary
+Observação/Espelhamento/Desvendando videos — see
+`EpisodeVideoResolver::allVideoSlots()` in portalfluencybe); each is its own
+job, distinguished by `slot`, stored under its own R2 key prefix
+(`episodes/{id}/hls/{slot}/...`) so they never collide.
 
 ## API
 
-`POST /jobs` `{ episodeId, sourceKey }` → `202 Accepted` immediately with the
+`POST /jobs` `{ episodeId, slot, sourceKey }` → `202 Accepted` immediately with the
 job's position in the queue; the actual encode is processed **one at a time**
 (see `src/queue.ts` — ffmpeg is CPU/disk heavy and nothing else here limits
 concurrency) and can take minutes. Its result is reported via

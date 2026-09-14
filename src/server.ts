@@ -22,16 +22,16 @@ const jobQueue = new JobQueue<TranscodeJobInput>(runJobInBackground);
 app.get('/health', async () => ({ ok: true, queueLength: jobQueue.length }));
 
 app.post<{ Body: TranscodeJobInput }>('/jobs', async (request, reply) => {
-  const { episodeId, sourceKey } = request.body ?? ({} as TranscodeJobInput);
+  const { episodeId, slot, sourceKey } = request.body ?? ({} as TranscodeJobInput);
 
-  if (!episodeId || !sourceKey) {
-    return reply.code(400).send({ error: 'episodeId and sourceKey are required' });
+  if (!episodeId || !slot || !sourceKey) {
+    return reply.code(400).send({ error: 'episodeId, slot and sourceKey are required' });
   }
 
   // Accepted immediately; the actual encode is processed one-at-a-time by
   // jobQueue and its result is reported later via the callback (this can
   // take minutes for a real video).
-  jobQueue.enqueue({ episodeId, sourceKey });
+  jobQueue.enqueue({ episodeId, slot, sourceKey });
 
   reply.code(202).send({ accepted: true, queuePosition: jobQueue.length });
 });

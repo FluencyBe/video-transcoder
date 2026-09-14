@@ -2,8 +2,11 @@ import { TranscodeJobInput, TranscodeJobResult } from './types';
 
 /**
  * Reports a finished (or failed) job back to portalfluencybe, which owns the
- * episodes table. Authenticated with a shared bearer token (TRANSCODE_CALLBACK_TOKEN)
- * — this is a trusted server-to-server call, not a user-facing endpoint.
+ * episode_video_transcodes table. Authenticated with a shared bearer token
+ * (TRANSCODE_CALLBACK_TOKEN) — this is a trusted server-to-server call, not
+ * a user-facing endpoint. `slot` rides along in the body so the callback
+ * knows which of the episode's (possibly several) videos this result is
+ * for.
  */
 export async function postCallback(
   callbackUrl: string,
@@ -17,7 +20,7 @@ export async function postCallback(
       'Content-Type': 'application/json',
       Authorization: `Bearer ${callbackToken}`,
     },
-    body: JSON.stringify(result),
+    body: JSON.stringify({ slot: input.slot, ...result }),
   });
 
   if (!response.ok) {

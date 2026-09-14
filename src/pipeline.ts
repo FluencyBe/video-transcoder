@@ -1,6 +1,6 @@
 import { mkdtemp, readdir, rm } from 'fs/promises';
 import { tmpdir } from 'os';
-import { join, extname } from 'path';
+import { join, extname, dirname } from 'path';
 import { TranscodeJobDeps } from './job';
 import { buildFfmpegArgs, runFfmpeg } from './ffmpeg';
 import { HLS_SEGMENT_SECONDS } from './renditions';
@@ -50,7 +50,10 @@ export function buildPipelineDeps(r2: R2Client): TranscodeJobDeps {
     },
 
     async cleanupSource(sourcePath) {
-      await rm(sourcePath, { force: true });
+      // Removes the whole mkdtemp'd directory downloadSource created (not
+      // just the file in it) — otherwise every job leaves an empty leftover
+      // dir behind in /tmp.
+      await rm(dirname(sourcePath), { recursive: true, force: true });
     },
   };
 }
