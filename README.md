@@ -44,7 +44,7 @@ This service has no existing infra-as-code precedent in this monorepo
 2. Set the env vars from `.env.example` (real R2 credentials, the real
    `TRANSCODE_CALLBACK_URL` pointing at the deployed portalfluencybe, and a
    freshly generated `TRANSCODE_CALLBACK_TOKEN`).
-3. Set the same `TRANSCODER_CALLBACK_TOKEN` value in portalfluencybe's env
+3. Set the same `TRANSCODE_CALLBACK_TOKEN` — same name, not just same value — in portalfluencybe's env
    (see `portalfluencybe/.env.example`).
 4. Note the service's internal/external URL — portalfluencybe's
    `VIDEO_TRANSCODER_URL` env var needs to point at it.
